@@ -1,14 +1,23 @@
 "use client";
 
 import React, { useState } from "react";
-import { TripInput, VALID_INTERESTS, VALID_MONTHS } from "@/lib/schemas";
+import {
+  BudgetStyle,
+  Interest,
+  Month,
+  TravelPace,
+  TripInput,
+  VALID_INTERESTS,
+  VALID_MONTHS,
+  VALID_TRAVEL_PACES,
+} from "@/lib/schemas";
 
 interface TripFormProps {
   onSubmit: (input: TripInput) => void;
   isLoading: boolean;
 }
 
-const INTEREST_LABELS: Record<(typeof VALID_INTERESTS)[number], string> = {
+const INTEREST_LABELS: Record<Interest, string> = {
   history: "🏛️ History & Heritage",
   food: "🍲 Culinary & Street Food",
   architecture: "🕌 Architecture & Monuments",
@@ -22,20 +31,16 @@ const INTEREST_LABELS: Record<(typeof VALID_INTERESTS)[number], string> = {
 export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
   const [destination, setDestination] = useState("");
   const [days, setDays] = useState(3);
-  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
-  const [budgetStyle, setBudgetStyle] = useState<
-    "budget" | "moderate" | "premium"
-  >("moderate");
-  const [travelPace, setTravelPace] = useState<
-    "relaxed" | "balanced" | "packed"
-  >("balanced");
-  const [travelMonth, setTravelMonth] = useState("");
+  const [selectedInterests, setSelectedInterests] = useState<Interest[]>([]);
+  const [budgetStyle, setBudgetStyle] = useState<BudgetStyle>("moderate");
+  const [travelPace, setTravelPace] = useState<TravelPace>("balanced");
+  const [travelMonth, setTravelMonth] = useState<Month | "">("");
   const [dietaryPreference, setDietaryPreference] = useState("");
   const [accessibilityNeeds, setAccessibilityNeeds] = useState("");
   const [avoidTouristy, setAvoidTouristy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleInterestToggle = (interest: string) => {
+  const handleInterestToggle = (interest: Interest) => {
     setSelectedInterests((prev) =>
       prev.includes(interest)
         ? prev.filter((i) => i !== interest)
@@ -61,10 +66,10 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
     const payload: TripInput = {
       destination: destination.trim(),
       days,
-      interests: selectedInterests as TripInput["interests"],
+      interests: selectedInterests,
       budgetStyle,
       travelPace,
-      travelMonth: (travelMonth || undefined) as TripInput["travelMonth"],
+      travelMonth: travelMonth || undefined,
       dietaryPreference: dietaryPreference.trim() || undefined,
       accessibilityNeeds: accessibilityNeeds.trim() || undefined,
       avoidTouristy,
@@ -140,9 +145,7 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
           <select
             id="budgetStyle"
             value={budgetStyle}
-            onChange={(e) =>
-              setBudgetStyle(e.target.value as typeof budgetStyle)
-            }
+            onChange={(e) => setBudgetStyle(e.target.value as BudgetStyle)}
             className={inputClasses}
             disabled={isLoading}
           >
@@ -209,7 +212,7 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
           aria-labelledby="pace-legend"
           className="grid grid-cols-3 gap-2"
         >
-          {(["relaxed", "balanced", "packed"] as const).map((pace) => {
+          {VALID_TRAVEL_PACES.map((pace) => {
             const isSelected = travelPace === pace;
             return (
               <button
@@ -249,7 +252,7 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
           <select
             id="travelMonth"
             value={travelMonth}
-            onChange={(e) => setTravelMonth(e.target.value)}
+            onChange={(e) => setTravelMonth(e.target.value as Month | "")}
             className={inputClasses}
             disabled={isLoading}
             aria-describedby="travelMonth-hint"

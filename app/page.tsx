@@ -3,15 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import TripForm from "@/components/trip-form";
 import ResultsDisplay from "@/components/results-display";
-import { TripInput, TripOutput } from "@/lib/schemas";
-import { GroundingData } from "@/lib/destination-source";
-
-interface GenerationResult {
-  itinerary: TripOutput;
-  grounding: GroundingData;
-  timestamp: string;
-  modelUsed: string;
-}
+import { GenerationResult, TripInput } from "@/lib/schemas";
 
 export default function Home() {
   const [result, setResult] = useState<GenerationResult | null>(null);

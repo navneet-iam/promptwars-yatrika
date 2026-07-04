@@ -1,25 +1,16 @@
-import { fetchDestinationGrounding, GroundingData } from './destination-source';
+import { fetchDestinationGrounding } from './destination-source';
 import { generateTripPlan } from './llm';
-import { TripInput, TripInputSchema, TripOutput } from './schemas';
+import { GenerationResult, GroundingData, TripInput, TripInputSchema, TripOutput } from './schemas';
 import { ValidationError } from './errors';
 import { TtlCache } from './ttl-cache';
-
-export interface PlannerResult {
-  itinerary: TripOutput;
-  grounding: GroundingData;
-  timestamp: string;
-  modelUsed: string;
-}
-
-const MODEL_NAME = 'gemini-2.5-flash';
+import { MODEL_NAME, RESPONSE_CACHE_TTL_MS } from './constants';
 
 // Cache the expensive part of a generation (grounding + itinerary) keyed by the
 // normalized request. An identical repeat submission then skips BOTH the
 // Wikipedia lookup and the Gemini call. The timestamp is always regenerated so
 // the on-page audit log still reflects the actual query time.
-const RESPONSE_TTL_MS = 1000 * 60 * 10; // 10 minutes
 const responseCache = new TtlCache<{ itinerary: TripOutput; grounding: GroundingData }>(
-  RESPONSE_TTL_MS,
+  RESPONSE_CACHE_TTL_MS,
 );
 
 /** Order-independent, canonical cache key for a validated trip request. */
@@ -42,7 +33,7 @@ export function clearResponseCache(): void {
   responseCache.clear();
 }
 
-export async function orchestrateTripPlan(rawInput: unknown): Promise<PlannerResult> {
+export async function orchestrateTripPlan(rawInput: unknown): Promise<GenerationResult> {
   // 1. Validate form input using Zod
   const validationResult = TripInputSchema.safeParse(rawInput);
   if (!validationResult.success) {

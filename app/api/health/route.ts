@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { MODEL_NAME } from '@/lib/constants';
 
 // Small, dependency-free health probe. Confirms the app is running, which model
 // backs generation, and whether the GenAI key is configured — WITHOUT ever
@@ -9,7 +10,7 @@ export async function GET() {
   return NextResponse.json({
     status: 'ok',
     app: 'Yatrika',
-    model: 'gemini-2.5-flash',
+    model: MODEL_NAME,
     grounding: 'wikipedia',
     genAiConfigured: hasApiKey,
     timestamp: new Date().toISOString(),

@@ -1,4 +1,10 @@
 import { z } from 'zod';
+import {
+  MIN_TRIP_DAYS,
+  MAX_TRIP_DAYS,
+  MAX_DESTINATION_LENGTH,
+  MAX_OPTIONAL_TEXT_LENGTH,
+} from './constants';
 
 export const VALID_INTERESTS = [
   'history',
@@ -10,6 +16,10 @@ export const VALID_INTERESTS = [
   'nature',
   'photography',
 ] as const;
+
+export const VALID_BUDGET_STYLES = ['budget', 'moderate', 'premium'] as const;
+
+export const VALID_TRAVEL_PACES = ['relaxed', 'balanced', 'packed'] as const;
 
 export const VALID_MONTHS = [
   'January',
@@ -26,26 +36,35 @@ export const VALID_MONTHS = [
   'December',
 ] as const;
 
+// Derived union types — a single source of truth shared by the schema, the API,
+// and the UI, so option lists can never drift out of sync.
+export type Interest = (typeof VALID_INTERESTS)[number];
+export type BudgetStyle = (typeof VALID_BUDGET_STYLES)[number];
+export type TravelPace = (typeof VALID_TRAVEL_PACES)[number];
+export type Month = (typeof VALID_MONTHS)[number];
+
 export const TripInputSchema = z.object({
   destination: z
     .string()
     .trim()
     .min(1, { message: 'Destination is required' })
-    .max(100, { message: 'Destination must be less than 100 characters' }),
+    .max(MAX_DESTINATION_LENGTH, {
+      message: `Destination must be less than ${MAX_DESTINATION_LENGTH} characters`,
+    }),
   days: z
     .number()
     .int({ message: 'Trip duration must be a whole number of days' })
-    .min(1, { message: 'Trip must be at least 1 day' })
-    .max(10, { message: 'Trip must be at most 10 days' }),
+    .min(MIN_TRIP_DAYS, { message: `Trip must be at least ${MIN_TRIP_DAYS} day` })
+    .max(MAX_TRIP_DAYS, { message: `Trip must be at most ${MAX_TRIP_DAYS} days` }),
   interests: z
     .array(z.enum(VALID_INTERESTS))
     .min(1, { message: 'Select at least one interest' }),
-  budgetStyle: z.enum(['budget', 'moderate', 'premium']),
-  travelPace: z.enum(['relaxed', 'balanced', 'packed']),
+  budgetStyle: z.enum(VALID_BUDGET_STYLES),
+  travelPace: z.enum(VALID_TRAVEL_PACES),
   // Optional context so the guide can reason about seasonal experiences and festivals.
   travelMonth: z.enum(VALID_MONTHS).optional(),
-  dietaryPreference: z.string().trim().max(100).optional(),
-  accessibilityNeeds: z.string().trim().max(100).optional(),
+  dietaryPreference: z.string().trim().max(MAX_OPTIONAL_TEXT_LENGTH).optional(),
+  accessibilityNeeds: z.string().trim().max(MAX_OPTIONAL_TEXT_LENGTH).optional(),
   avoidTouristy: z.boolean().default(false),
 });
 
@@ -70,6 +89,8 @@ export const DayPlanSchema = z.object({
   evening: ItineraryBlockSchema,
 });
 
+export type DayPlan = z.infer<typeof DayPlanSchema>;
+
 export const HiddenGemSchema = z.object({
   name: z.string().min(1),
   whatItIs: z.string().min(1),
@@ -78,11 +99,15 @@ export const HiddenGemSchema = z.object({
   whoItSuits: z.string().min(1),
 });
 
+export type HiddenGem = z.infer<typeof HiddenGemSchema>;
+
 export const CulturalEtiquetteSchema = z.object({
   type: z.enum(['do', 'dont', 'custom']),
   guideline: z.string().min(1),
   explanation: z.string().min(1),
 });
+
+export type CulturalEtiquette = z.infer<typeof CulturalEtiquetteSchema>;
 
 export const FoodHighlightSchema = z.object({
   dishName: z.string().min(1),
@@ -90,6 +115,8 @@ export const FoodHighlightSchema = z.object({
   culturalSignificance: z.string().min(1),
   whereToTry: z.string().min(1),
 });
+
+export type FoodHighlight = z.infer<typeof FoodHighlightSchema>;
 
 // Seasonal / cultural experiences to "look out for" — deliberately framed as
 // AI-suggested cultural context, never as a live, bookable event feed.
@@ -121,3 +148,19 @@ export const TripOutputSchema = z.object({
 });
 
 export type TripOutput = z.infer<typeof TripOutputSchema>;
+
+/** Concise destination context retrieved from Wikipedia (or a graceful fallback). */
+export interface GroundingData {
+  title: string;
+  extract: string;
+  url: string;
+  source: 'wikipedia' | 'fallback';
+}
+
+/** The full payload returned by the generation API and rendered by the UI. */
+export interface GenerationResult {
+  itinerary: TripOutput;
+  grounding: GroundingData;
+  timestamp: string;
+  modelUsed: string;
+}

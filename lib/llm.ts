@@ -1,18 +1,24 @@
 import { GoogleGenAI } from '@google/genai';
-import { TripInput, TripOutput, TripOutputSchema } from './schemas';
+import { GroundingData, TripInput, TripOutput, TripOutputSchema } from './schemas';
 import { buildSystemPrompt, buildUserPrompt } from './prompts';
-import { GroundingData } from './destination-source';
 import { LLMError } from './errors';
+import { GEMINI_MAX_ATTEMPTS, GEMINI_TEMPERATURE, MODEL_NAME } from './constants';
 
-// Initialize the GoogleGenAI client with the server-side API Key
-// Fall back to empty string so initialization doesn't throw at start-up if key is set at request-time
+// Initialize the GoogleGenAI client with the server-side API Key.
+// Fall back to empty string so initialization doesn't throw at start-up if the
+// key is only present at request time.
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '',
 });
 
-// JSON Schema defined in Gemini API format (uppercase Type strings).
-// The morning/afternoon/evening blocks share one shape, so it is defined once
-// and reused for all three time slots.
+// We keep two complementary representations of the output shape, each serving a
+// distinct purpose:
+//   1. `geminiResponseSchema` below — the Gemini-native schema (uppercase Type
+//      strings) that *constrains generation*.
+//   2. `TripOutputSchema` (Zod) — which *validates* the model's response at
+//      runtime before we trust it.
+// The morning/afternoon/evening blocks share one shape, defined once here and
+// reused for all three time slots.
 const itineraryBlockSchema = {
   type: 'OBJECT',
   properties: {
@@ -127,24 +133,22 @@ export async function generateTripPlan(
     throw new LLMError('GEMINI_API_KEY is not configured in the server environment.');
   }
 
-  // Use the recommended general model 'gemini-2.5-flash'
-  const modelName = 'gemini-2.5-flash';
   const systemInstruction = buildSystemPrompt();
   const prompt = buildUserPrompt(input, grounding);
 
-  let attempts = 2;
+  let attempts = GEMINI_MAX_ATTEMPTS;
   let lastError: Error | null = null;
 
   while (attempts > 0) {
     try {
       const response = await ai.models.generateContent({
-        model: modelName,
+        model: MODEL_NAME,
         contents: prompt,
         config: {
           systemInstruction,
           responseMimeType: 'application/json',
           responseSchema: geminiResponseSchema,
-          temperature: 0.2, // Lower temperature to prevent creative hallucinating of factual data
+          temperature: GEMINI_TEMPERATURE,
         },
       });
 

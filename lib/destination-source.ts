@@ -1,20 +1,16 @@
 import { GroundingError } from './errors';
 import { TtlCache } from './ttl-cache';
+import { GROUNDING_CACHE_TTL_MS, WIKIPEDIA_USER_AGENT } from './constants';
+import type { GroundingData } from './schemas';
 
-export interface GroundingData {
-  title: string;
-  extract: string;
-  url: string;
-  source: 'wikipedia' | 'fallback';
-}
-
-const USER_AGENT = 'Yatrika-Cultural-Travel-App/1.0 (https://github.com/; travel-companion)';
+// Re-exported so existing importers can keep importing the grounding type from
+// the module that produces it, while the canonical definition lives in schemas.
+export type { GroundingData } from './schemas';
 
 // Evaluators frequently retry the same well-known destinations (Jaipur, Kyoto,
 // Rome...), so caching the grounding lookup avoids hammering the public
 // Wikipedia API and shaves latency off repeat requests.
-const CACHE_TTL_MS = 1000 * 60 * 60; // 1 hour
-const groundingCache = new TtlCache<GroundingData>(CACHE_TTL_MS);
+const groundingCache = new TtlCache<GroundingData>(GROUNDING_CACHE_TTL_MS);
 
 function cacheKey(destination: string): string {
   return destination.trim().toLowerCase();
@@ -50,7 +46,7 @@ export async function fetchDestinationGrounding(destination: string): Promise<Gr
     )}&limit=1&namespace=0&format=json&origin=*`;
 
     const searchResponse = await fetch(searchUrl, {
-      headers: { 'User-Agent': USER_AGENT },
+      headers: { 'User-Agent': WIKIPEDIA_USER_AGENT },
     });
 
     if (!searchResponse.ok) {
@@ -81,7 +77,7 @@ export async function fetchDestinationGrounding(destination: string): Promise<Gr
     )}`;
 
     const summaryResponse = await fetch(summaryUrl, {
-      headers: { 'User-Agent': USER_AGENT },
+      headers: { 'User-Agent': WIKIPEDIA_USER_AGENT },
     });
 
     if (!summaryResponse.ok) {

@@ -3,6 +3,8 @@
 // external store: on serverless it is best-effort per warm instance, which is an
 // appropriate guard for a stateless MVP (documented as such in the README).
 
+import { RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS } from './constants';
+
 export interface RateLimitResult {
   allowed: boolean;
   limit: number;
@@ -22,18 +24,13 @@ interface RateLimitOptions {
 
 const buckets = new Map<string, number[]>();
 
-// Generous enough that a human evaluator rapidly trying many destinations will
-// never trip it, while still blocking scripted abuse.
-const DEFAULT_LIMIT = 20;
-const DEFAULT_WINDOW_MS = 60_000; // 1 minute
-
 /**
  * Records a hit for `key` and reports whether it is within the allowed rate.
  * Uses a rolling list of hit timestamps, pruned to the active window on each call.
  */
 export function rateLimit(key: string, options: RateLimitOptions = {}): RateLimitResult {
-  const limit = options.limit ?? DEFAULT_LIMIT;
-  const windowMs = options.windowMs ?? DEFAULT_WINDOW_MS;
+  const limit = options.limit ?? RATE_LIMIT_MAX;
+  const windowMs = options.windowMs ?? RATE_LIMIT_WINDOW_MS;
   const now = options.now ? options.now() : Date.now();
   const windowStart = now - windowMs;
 
