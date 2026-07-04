@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { orchestrateTripPlan } from '../lib/planner';
+import { orchestrateTripPlan, clearResponseCache } from '../lib/planner';
 import * as llm from '../lib/llm';
 import * as groundingSource from '../lib/destination-source';
 
@@ -14,6 +14,7 @@ vi.mock('../lib/destination-source', () => ({
 describe('Orchestration Layer Integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearResponseCache();
   });
 
   const validFormInput = {
@@ -116,6 +117,20 @@ describe('Orchestration Layer Integration', () => {
       expect.objectContaining({ destination: 'Kyoto' }),
       mockGroundingData
     );
+  });
+
+  it('should serve an identical repeat request from cache without re-calling grounding or the LLM', async () => {
+    vi.mocked(groundingSource.fetchDestinationGrounding).mockResolvedValue(mockGroundingData);
+    vi.mocked(llm.generateTripPlan).mockResolvedValue(mockItineraryResult);
+
+    const first = await orchestrateTripPlan(validFormInput);
+    const second = await orchestrateTripPlan(validFormInput);
+
+    // The expensive work runs once; the second call is a cache hit.
+    expect(groundingSource.fetchDestinationGrounding).toHaveBeenCalledTimes(1);
+    expect(llm.generateTripPlan).toHaveBeenCalledTimes(1);
+    expect(second.itinerary).toEqual(first.itinerary);
+    expect(second.grounding).toEqual(first.grounding);
   });
 
   it('should propagate validation errors without calling external APIs', async () => {

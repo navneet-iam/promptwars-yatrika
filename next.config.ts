@@ -35,9 +35,17 @@ const securityHeaders = [
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
   { key: 'X-DNS-Prefetch-Control', value: 'on' },
+  // HSTS: enforce HTTPS on the deployed (Vercel) domain. Ignored by browsers on
+  // http/localhost, so it is safe to always emit.
+  {
+    key: 'Strict-Transport-Security',
+    value: 'max-age=31536000; includeSubDomains',
+  },
 ];
 
 const nextConfig: NextConfig = {
+  // Do not advertise the framework via the X-Powered-By header.
+  poweredByHeader: false,
   async headers() {
     return [
       {

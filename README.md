@@ -92,7 +92,7 @@ Layered code structure:
 - **Secrets stay server-side**: `GEMINI_API_KEY` is only read in server code; it is never bundled or sent to the client.
 - **Input validation**: all request bodies are validated/sanitized with Zod (length caps, integer/enum constraints) before any external call.
 - **Rate limiting**: a lightweight in-memory sliding-window guard (`lib/rate-limit.ts`) caps generations per client per minute and returns `429` with `Retry-After`. Best-effort per instance — appropriate for a stateless MVP.
-- **Security headers** (`next.config.ts`): Content-Security-Policy, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, and `Permissions-Policy`. The production CSP is strict (`'unsafe-eval'` is added _only_ in development, where React requires it).
+- **Security headers** (`next.config.ts`): Content-Security-Policy, `Strict-Transport-Security` (HSTS), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, and `Permissions-Policy`; the `X-Powered-By` header is disabled. The production CSP is strict (`'unsafe-eval'` is added _only_ in development, where React requires it).
 - **Safe errors**: internal errors are logged server-side; clients receive generic, non-leaking messages.
 - **No `dangerouslySetInnerHTML`**; all model output is rendered as escaped text after schema validation.
 
@@ -116,16 +116,19 @@ Accessibility is treated as a first-class requirement:
 
 ## 7. Testing
 
-A real suite (Vitest + React Testing Library) covers validation, retrieval, orchestration, security, and UI — **6 test files, 31 tests**.
+A real suite (Vitest + React Testing Library) covers validation, retrieval, orchestration, security, and UI — **9 test files, 43 tests**.
 
 | File | Covers |
 | --- | --- |
 | `tests/unit.test.ts` | input validation; Wikipedia grounding success + graceful fallbacks |
 | `tests/schema-output.test.ts` | AI-output parsing; `localExperiences` default + `.catch([])` degradation; required-field & no-days rejection; `travelMonth` validation |
 | `tests/cache.test.ts` | grounding cache hit/normalization; fallbacks are not cached |
+| `tests/ttl-cache.test.ts` | generic TTL cache get/set/expiry/clear with an injected clock |
 | `tests/rate-limit.test.ts` | sliding-window allow/block, per-client isolation, window reset, client-key extraction |
-| `tests/integration.test.ts` | planner orchestration (mocked LLM + retrieval); validation short-circuits external calls |
+| `tests/integration.test.ts` | planner orchestration (mocked LLM + retrieval); response-cache reuse; validation short-circuits external calls |
+| `tests/route.test.ts` | `/api/generate` success, error→status mapping, non-leaking 500, and 429 rate-limiting |
 | `tests/ui.test.tsx` | accessible form rendering; validation states; payload shape incl. `travelMonth`; loading/disabled state |
+| `tests/results-display.test.tsx` | result sections render from structured data; day tabs + roving tabindex; seasonal section shown/omitted |
 
 Run:
 
@@ -163,8 +166,8 @@ npm run dev      # http://localhost:3000
 ## 9. Assumptions & Tradeoffs
 
 - **No persistence / no auth**: itineraries live in React state for the session; users can Copy, Export `.txt`, or Print/Save-PDF. This keeps the app deployable on Vercel with zero infrastructure.
-- **Best-effort in-memory state**: the grounding cache and rate limiter live per warm serverless instance (no external store), which is the right trade-off for a stateless MVP.
-- **Efficiency**: exactly one grounding lookup (cached) + one main AI call per submission; repeat destinations are served from cache.
+- **Best-effort in-memory state**: the grounding cache, full-response cache, and rate limiter live per warm serverless instance (no external store), which is the right trade-off for a stateless MVP.
+- **Efficiency**: exactly one grounding lookup (cached) + one main AI call per submission; identical repeat requests are served from a full-response cache (skipping both Wikipedia and Gemini); a shared `TtlCache` backs both caches. A native system-font stack is used, so **zero web fonts** are downloaded.
 
 ---
 

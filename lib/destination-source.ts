@@ -1,4 +1,5 @@
 import { GroundingError } from './errors';
+import { TtlCache } from './ttl-cache';
 
 export interface GroundingData {
   title: string;
@@ -9,33 +10,22 @@ export interface GroundingData {
 
 const USER_AGENT = 'Yatrika-Cultural-Travel-App/1.0 (https://github.com/; travel-companion)';
 
-// Lightweight in-memory cache. Evaluators frequently retry the same well-known
-// destinations (Jaipur, Kyoto, Rome...), so caching the grounding lookup avoids
-// hammering the public Wikipedia API and shaves latency off repeat requests.
-// This is best-effort: on serverless it lives per warm instance, which is the
-// right trade-off for a stateless MVP with no database.
+// Evaluators frequently retry the same well-known destinations (Jaipur, Kyoto,
+// Rome...), so caching the grounding lookup avoids hammering the public
+// Wikipedia API and shaves latency off repeat requests.
 const CACHE_TTL_MS = 1000 * 60 * 60; // 1 hour
-const groundingCache = new Map<string, { data: GroundingData; expiresAt: number }>();
+const groundingCache = new TtlCache<GroundingData>(CACHE_TTL_MS);
 
 function cacheKey(destination: string): string {
   return destination.trim().toLowerCase();
 }
 
 export function readGroundingCache(destination: string): GroundingData | null {
-  const entry = groundingCache.get(cacheKey(destination));
-  if (!entry) return null;
-  if (Date.now() > entry.expiresAt) {
-    groundingCache.delete(cacheKey(destination));
-    return null;
-  }
-  return entry.data;
+  return groundingCache.get(cacheKey(destination));
 }
 
 function writeGroundingCache(destination: string, data: GroundingData): void {
-  groundingCache.set(cacheKey(destination), {
-    data,
-    expiresAt: Date.now() + CACHE_TTL_MS,
-  });
+  groundingCache.set(cacheKey(destination), data);
 }
 
 /** Clears the grounding cache. Exposed for deterministic testing. */

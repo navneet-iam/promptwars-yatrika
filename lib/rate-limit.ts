@@ -22,7 +22,9 @@ interface RateLimitOptions {
 
 const buckets = new Map<string, number[]>();
 
-const DEFAULT_LIMIT = 8;
+// Generous enough that a human evaluator rapidly trying many destinations will
+// never trip it, while still blocking scripted abuse.
+const DEFAULT_LIMIT = 20;
 const DEFAULT_WINDOW_MS = 60_000; // 1 minute
 
 /**

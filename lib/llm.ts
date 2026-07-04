@@ -10,7 +10,22 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '',
 });
 
-// JSON Schema defined in Gemini API format (uppercase Type strings)
+// JSON Schema defined in Gemini API format (uppercase Type strings).
+// The morning/afternoon/evening blocks share one shape, so it is defined once
+// and reused for all three time slots.
+const itineraryBlockSchema = {
+  type: 'OBJECT',
+  properties: {
+    title: { type: 'STRING' },
+    description: { type: 'STRING' },
+    culturalContext: { type: 'STRING' },
+    whyRecommended: { type: 'STRING' },
+    duration: { type: 'STRING' },
+    practicalTip: { type: 'STRING' },
+  },
+  required: ['title', 'description', 'culturalContext', 'whyRecommended', 'duration', 'practicalTip'],
+};
+
 const geminiResponseSchema = {
   type: 'OBJECT',
   properties: {
@@ -23,42 +38,9 @@ const geminiResponseSchema = {
         properties: {
           dayNumber: { type: 'INTEGER' },
           theme: { type: 'STRING' },
-          morning: {
-            type: 'OBJECT',
-            properties: {
-              title: { type: 'STRING' },
-              description: { type: 'STRING' },
-              culturalContext: { type: 'STRING' },
-              whyRecommended: { type: 'STRING' },
-              duration: { type: 'STRING' },
-              practicalTip: { type: 'STRING' },
-            },
-            required: ['title', 'description', 'culturalContext', 'whyRecommended', 'duration', 'practicalTip'],
-          },
-          afternoon: {
-            type: 'OBJECT',
-            properties: {
-              title: { type: 'STRING' },
-              description: { type: 'STRING' },
-              culturalContext: { type: 'STRING' },
-              whyRecommended: { type: 'STRING' },
-              duration: { type: 'STRING' },
-              practicalTip: { type: 'STRING' },
-            },
-            required: ['title', 'description', 'culturalContext', 'whyRecommended', 'duration', 'practicalTip'],
-          },
-          evening: {
-            type: 'OBJECT',
-            properties: {
-              title: { type: 'STRING' },
-              description: { type: 'STRING' },
-              culturalContext: { type: 'STRING' },
-              whyRecommended: { type: 'STRING' },
-              duration: { type: 'STRING' },
-              practicalTip: { type: 'STRING' },
-            },
-            required: ['title', 'description', 'culturalContext', 'whyRecommended', 'duration', 'practicalTip'],
-          },
+          morning: itineraryBlockSchema,
+          afternoon: itineraryBlockSchema,
+          evening: itineraryBlockSchema,
         },
         required: ['dayNumber', 'theme', 'morning', 'afternoon', 'evening'],
       },

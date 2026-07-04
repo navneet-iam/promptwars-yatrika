@@ -60,6 +60,8 @@ export const ItineraryBlockSchema = z.object({
   practicalTip: z.string().min(1),
 });
 
+export type ItineraryBlock = z.infer<typeof ItineraryBlockSchema>;
+
 export const DayPlanSchema = z.object({
   dayNumber: z.number(),
   theme: z.string().min(1),

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { TripOutput } from '@/lib/schemas';
+import { ItineraryBlock, TripOutput } from '@/lib/schemas';
 import { GroundingData } from '@/lib/destination-source';
 
 interface ResultsDisplayProps {
@@ -12,6 +12,14 @@ interface ResultsDisplayProps {
     modelUsed: string;
   };
 }
+
+// The three daily time slots share one card layout; only the label, icon, and
+// accent colour differ. Defined once and mapped over to avoid duplication.
+const TIME_SLOTS = [
+  { key: 'morning', label: 'Morning', icon: '☀️', accent: 'text-amber-400' },
+  { key: 'afternoon', label: 'Afternoon', icon: '🌤️', accent: 'text-sky-400' },
+  { key: 'evening', label: 'Evening', icon: '🌙', accent: 'text-violet-400' },
+] as const;
 
 // Maps a (lenient) experience category to an icon, falling back gracefully for
 // any category the model returns outside the expected set.
@@ -25,6 +33,52 @@ const EXPERIENCE_ICONS: Record<string, string> = {
   other: '✨',
 };
 
+function TimeBlock({
+  label,
+  icon,
+  accent,
+  block,
+}: {
+  label: string;
+  icon: string;
+  accent: string;
+  block: ItineraryBlock;
+}) {
+  return (
+    <div className="bg-slate-950/60 p-5 rounded-xl border border-slate-800 hover:border-slate-700 transition space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-900 pb-2">
+        <span
+          className={`text-xs font-bold uppercase tracking-wider ${accent} flex items-center`}
+        >
+          {icon} {label} • {block.duration}
+        </span>
+        <h4 className="text-base font-bold text-slate-200">{block.title}</h4>
+      </div>
+      <p className="text-slate-300 text-sm leading-relaxed">
+        {block.description}
+      </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs bg-slate-950 p-3 rounded-lg border border-slate-900">
+        <div>
+          <span className="block font-bold text-slate-400 mb-0.5 uppercase tracking-wide">
+            Cultural Significance
+          </span>
+          <p className="text-slate-300">{block.culturalContext}</p>
+        </div>
+        <div>
+          <span className="block font-bold text-slate-400 mb-0.5 uppercase tracking-wide">
+            Why Recommended
+          </span>
+          <p className="text-slate-300">{block.whyRecommended}</p>
+        </div>
+      </div>
+      <div className="bg-orange-500/5 text-orange-300 border border-orange-500/20 p-2.5 rounded-lg text-xs font-medium">
+        <span aria-hidden="true">💡</span> <strong>Respect Tip:</strong>{' '}
+        {block.practicalTip}
+      </div>
+    </div>
+  );
+}
+
 export default function ResultsDisplay({ data }: ResultsDisplayProps) {
   const { itinerary, grounding, timestamp, modelUsed } = data;
   const [activeDay, setActiveDay] = useState<number>(
@@ -33,6 +87,13 @@ export default function ResultsDisplay({ data }: ResultsDisplayProps) {
   const [copySuccess, setCopySuccess] = useState(false);
 
   const localExperiences = itinerary.localExperiences ?? [];
+
+  const formatBlock = (label: string, block: ItineraryBlock): string =>
+    `${label}: ${block.title} (${block.duration})\n` +
+    `  - What to do: ${block.description}\n` +
+    `  - Cultural context: ${block.culturalContext}\n` +
+    `  - Why recommended: ${block.whyRecommended}\n` +
+    `  - Practical tip: ${block.practicalTip}\n\n`;
 
   const formatItineraryToText = (): string => {
     let text = `=========================================\n`;
@@ -49,23 +110,9 @@ export default function ResultsDisplay({ data }: ResultsDisplayProps) {
       text += `-----------------------------------------\n`;
       text += `DAY ${day.dayNumber}: ${day.theme}\n`;
       text += `-----------------------------------------\n`;
-      text += `Morning: ${day.morning.title} (${day.morning.duration})\n`;
-      text += `  - What to do: ${day.morning.description}\n`;
-      text += `  - Cultural context: ${day.morning.culturalContext}\n`;
-      text += `  - Why recommended: ${day.morning.whyRecommended}\n`;
-      text += `  - Practical tip: ${day.morning.practicalTip}\n\n`;
-
-      text += `Afternoon: ${day.afternoon.title} (${day.afternoon.duration})\n`;
-      text += `  - What to do: ${day.afternoon.description}\n`;
-      text += `  - Cultural context: ${day.afternoon.culturalContext}\n`;
-      text += `  - Why recommended: ${day.afternoon.whyRecommended}\n`;
-      text += `  - Practical tip: ${day.afternoon.practicalTip}\n\n`;
-
-      text += `Evening: ${day.evening.title} (${day.evening.duration})\n`;
-      text += `  - What to do: ${day.evening.description}\n`;
-      text += `  - Cultural context: ${day.evening.culturalContext}\n`;
-      text += `  - Why recommended: ${day.evening.whyRecommended}\n`;
-      text += `  - Practical tip: ${day.evening.practicalTip}\n\n`;
+      text += formatBlock('Morning', day.morning);
+      text += formatBlock('Afternoon', day.afternoon);
+      text += formatBlock('Evening', day.evening);
     });
 
     text += `-----------------------------------------\n`;
@@ -299,116 +346,15 @@ export default function ResultsDisplay({ data }: ResultsDisplayProps) {
               </div>
 
               <div className="grid grid-cols-1 gap-6">
-                {/* Morning */}
-                <div className="bg-slate-950/60 p-5 rounded-xl border border-slate-800 hover:border-slate-700 transition space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-900 pb-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center">
-                      ☀️ Morning • {day.morning.duration}
-                    </span>
-                    <h4 className="text-base font-bold text-slate-200">
-                      {day.morning.title}
-                    </h4>
-                  </div>
-                  <p className="text-slate-300 text-sm leading-relaxed">
-                    {day.morning.description}
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs bg-slate-950 p-3 rounded-lg border border-slate-900">
-                    <div>
-                      <span className="block font-bold text-slate-400 mb-0.5 uppercase tracking-wide">
-                        Cultural Significance
-                      </span>
-                      <p className="text-slate-300">
-                        {day.morning.culturalContext}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="block font-bold text-slate-400 mb-0.5 uppercase tracking-wide">
-                        Why Recommended
-                      </span>
-                      <p className="text-slate-300">
-                        {day.morning.whyRecommended}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="bg-orange-500/5 text-orange-300 border border-orange-500/20 p-2.5 rounded-lg text-xs font-medium">
-                    <span aria-hidden="true">💡</span>{' '}
-                    <strong>Respect Tip:</strong> {day.morning.practicalTip}
-                  </div>
-                </div>
-
-                {/* Afternoon */}
-                <div className="bg-slate-950/60 p-5 rounded-xl border border-slate-800 hover:border-slate-700 transition space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-900 pb-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-sky-400 flex items-center">
-                      🌤️ Afternoon • {day.afternoon.duration}
-                    </span>
-                    <h4 className="text-base font-bold text-slate-200">
-                      {day.afternoon.title}
-                    </h4>
-                  </div>
-                  <p className="text-slate-300 text-sm leading-relaxed">
-                    {day.afternoon.description}
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs bg-slate-950 p-3 rounded-lg border border-slate-900">
-                    <div>
-                      <span className="block font-bold text-slate-400 mb-0.5 uppercase tracking-wide">
-                        Cultural Significance
-                      </span>
-                      <p className="text-slate-300">
-                        {day.afternoon.culturalContext}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="block font-bold text-slate-400 mb-0.5 uppercase tracking-wide">
-                        Why Recommended
-                      </span>
-                      <p className="text-slate-300">
-                        {day.afternoon.whyRecommended}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="bg-orange-500/5 text-orange-300 border border-orange-500/20 p-2.5 rounded-lg text-xs font-medium">
-                    <span aria-hidden="true">💡</span>{' '}
-                    <strong>Respect Tip:</strong> {day.afternoon.practicalTip}
-                  </div>
-                </div>
-
-                {/* Evening */}
-                <div className="bg-slate-950/60 p-5 rounded-xl border border-slate-800 hover:border-slate-700 transition space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-900 pb-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-violet-400 flex items-center">
-                      🌙 Evening • {day.evening.duration}
-                    </span>
-                    <h4 className="text-base font-bold text-slate-200">
-                      {day.evening.title}
-                    </h4>
-                  </div>
-                  <p className="text-slate-300 text-sm leading-relaxed">
-                    {day.evening.description}
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs bg-slate-950 p-3 rounded-lg border border-slate-900">
-                    <div>
-                      <span className="block font-bold text-slate-400 mb-0.5 uppercase tracking-wide">
-                        Cultural Significance
-                      </span>
-                      <p className="text-slate-300">
-                        {day.evening.culturalContext}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="block font-bold text-slate-400 mb-0.5 uppercase tracking-wide">
-                        Why Recommended
-                      </span>
-                      <p className="text-slate-300">
-                        {day.evening.whyRecommended}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="bg-orange-500/5 text-orange-300 border border-orange-500/20 p-2.5 rounded-lg text-xs font-medium">
-                    <span aria-hidden="true">💡</span>{' '}
-                    <strong>Respect Tip:</strong> {day.evening.practicalTip}
-                  </div>
-                </div>
+                {TIME_SLOTS.map((slot) => (
+                  <TimeBlock
+                    key={slot.key}
+                    label={slot.label}
+                    icon={slot.icon}
+                    accent={slot.accent}
+                    block={day[slot.key]}
+                  />
+                ))}
               </div>
             </div>
           );
