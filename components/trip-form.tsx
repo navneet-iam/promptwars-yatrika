@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { TripInput, VALID_INTERESTS } from "@/lib/schemas";
+import { TripInput, VALID_INTERESTS, VALID_MONTHS } from "@/lib/schemas";
 
 interface TripFormProps {
   onSubmit: (input: TripInput) => void;
@@ -29,6 +29,7 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
   const [travelPace, setTravelPace] = useState<
     "relaxed" | "balanced" | "packed"
   >("balanced");
+  const [travelMonth, setTravelMonth] = useState("");
   const [dietaryPreference, setDietaryPreference] = useState("");
   const [accessibilityNeeds, setAccessibilityNeeds] = useState("");
   const [avoidTouristy, setAvoidTouristy] = useState(false);
@@ -60,9 +61,10 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
     const payload: TripInput = {
       destination: destination.trim(),
       days,
-      interests: selectedInterests as any,
+      interests: selectedInterests as TripInput["interests"],
       budgetStyle,
       travelPace,
+      travelMonth: (travelMonth || undefined) as TripInput["travelMonth"],
       dietaryPreference: dietaryPreference.trim() || undefined,
       accessibilityNeeds: accessibilityNeeds.trim() || undefined,
       avoidTouristy,
@@ -70,6 +72,9 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
 
     onSubmit(payload);
   };
+
+  const inputClasses =
+    "w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition";
 
   return (
     <form
@@ -83,8 +88,7 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
           htmlFor="destination"
           className="block text-sm font-semibold text-slate-200"
         >
-          Where are you traveling to?{" "}
-          <span className="text-emerald-400">*</span>
+          Where are you traveling to? <span className="text-orange-400">*</span>
         </label>
         <input
           type="text"
@@ -92,7 +96,7 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
           value={destination}
           onChange={(e) => setDestination(e.target.value)}
           placeholder="e.g. Kyoto, Jaipur, Cusco, Rome"
-          className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+          className={inputClasses}
           required
           aria-required="true"
           disabled={isLoading}
@@ -106,8 +110,8 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
             className="block text-sm font-semibold text-slate-200"
           >
             Trip Duration:{" "}
-            <span className="font-bold text-emerald-400">{days}</span> day(s){" "}
-            <span className="text-emerald-400">*</span>
+            <span className="font-bold text-orange-400">{days}</span> day(s){" "}
+            <span className="text-orange-400">*</span>
           </label>
           <input
             type="range"
@@ -116,7 +120,7 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
             max="10"
             value={days}
             onChange={(e) => setDays(Number(e.target.value))}
-            className="w-full h-2 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
             disabled={isLoading}
           />
           <div className="flex justify-between text-xs text-slate-400 px-1">
@@ -131,13 +135,15 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
             htmlFor="budgetStyle"
             className="block text-sm font-semibold text-slate-200"
           >
-            Budget Style <span className="text-emerald-400">*</span>
+            Budget Style <span className="text-orange-400">*</span>
           </label>
           <select
             id="budgetStyle"
             value={budgetStyle}
-            onChange={(e) => setBudgetStyle(e.target.value as any)}
-            className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+            onChange={(e) =>
+              setBudgetStyle(e.target.value as typeof budgetStyle)
+            }
+            className={inputClasses}
             disabled={isLoading}
           >
             <option value="budget">
@@ -159,7 +165,7 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
           className="block text-sm font-semibold text-slate-200"
         >
           What cultural interests fit your style?{" "}
-          <span className="text-emerald-400">*</span>
+          <span className="text-orange-400">*</span>
         </span>
         <div
           role="group"
@@ -175,10 +181,10 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
                 aria-pressed={isSelected}
                 onClick={() => handleInterestToggle(interest)}
                 disabled={isLoading}
-                className={`flex items-center text-left px-4 py-3 rounded-xl border text-sm transition focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+                className={`flex items-center text-left px-4 py-3 rounded-xl border text-sm transition focus:outline-none focus:ring-2 focus:ring-orange-500 ${
                   isSelected
-                    ? "bg-emerald-500/10 border-emerald-500 text-emerald-400 font-medium"
-                    : "bg-slate-950 border-slate-850 text-slate-350 hover:border-slate-800"
+                    ? "bg-orange-500/10 border-orange-500 text-orange-300 font-medium"
+                    : "bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700"
                 }`}
               >
                 <span className="mr-2" aria-hidden="true">
@@ -196,7 +202,7 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
           id="pace-legend"
           className="block text-sm font-semibold text-slate-200"
         >
-          Travel Pace <span className="text-emerald-400">*</span>
+          Travel Pace <span className="text-orange-400">*</span>
         </span>
         <div
           role="radiogroup"
@@ -213,10 +219,10 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
                 aria-checked={isSelected}
                 onClick={() => setTravelPace(pace)}
                 disabled={isLoading}
-                className={`py-3 rounded-xl border text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-500 capitalise ${
+                className={`py-3 rounded-xl border text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-orange-500 capitalize ${
                   isSelected
-                    ? "bg-emerald-500/10 border-emerald-500 text-emerald-400"
-                    : "bg-slate-950 border-slate-850 text-slate-350 hover:border-slate-800"
+                    ? "bg-orange-500/10 border-orange-500 text-orange-300"
+                    : "bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700"
                 }`}
               >
                 {pace.charAt(0).toUpperCase() + pace.slice(1)}
@@ -226,27 +232,54 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
         </div>
       </div>
 
-      <div className="border-t border-slate-850 my-6"></div>
+      <div className="border-t border-slate-800 my-6"></div>
 
       <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
         Optional Personalization
       </h3>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <label
+            htmlFor="travelMonth"
+            className="block text-sm font-semibold text-slate-200"
+          >
+            When are you visiting?
+          </label>
+          <select
+            id="travelMonth"
+            value={travelMonth}
+            onChange={(e) => setTravelMonth(e.target.value)}
+            className={inputClasses}
+            disabled={isLoading}
+            aria-describedby="travelMonth-hint"
+          >
+            <option value="">Flexible / Not sure</option>
+            {VALID_MONTHS.map((month) => (
+              <option key={month} value={month}>
+                {month}
+              </option>
+            ))}
+          </select>
+          <p id="travelMonth-hint" className="text-xs text-slate-400">
+            Helps tailor seasonal experiences &amp; festivals.
+          </p>
+        </div>
+
         <div className="space-y-2">
           <label
             htmlFor="dietaryPreference"
             className="block text-sm font-semibold text-slate-200"
           >
-            Dietary Preferences / Restrictions
+            Dietary Preferences
           </label>
           <input
             type="text"
             id="dietaryPreference"
             value={dietaryPreference}
             onChange={(e) => setDietaryPreference(e.target.value)}
-            placeholder="e.g. Vegetarian, Halal, Gluten-free"
-            className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+            placeholder="e.g. Vegetarian, Halal"
+            className={inputClasses}
             disabled={isLoading}
           />
         </div>
@@ -256,15 +289,15 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
             htmlFor="accessibilityNeeds"
             className="block text-sm font-semibold text-slate-200"
           >
-            Accessibility / Mobility Needs
+            Accessibility Needs
           </label>
           <input
             type="text"
             id="accessibilityNeeds"
             value={accessibilityNeeds}
             onChange={(e) => setAccessibilityNeeds(e.target.value)}
-            placeholder="e.g. Wheelchair access, minimal walking, flat surfaces"
-            className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+            placeholder="e.g. Wheelchair access, minimal walking"
+            className={inputClasses}
             disabled={isLoading}
           />
         </div>
@@ -276,12 +309,12 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
           id="avoidTouristy"
           checked={avoidTouristy}
           onChange={(e) => setAvoidTouristy(e.target.checked)}
-          className="w-5 h-5 rounded border-slate-800 bg-slate-950 text-emerald-500 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-slate-900 focus:ring-offset-2 accent-emerald-500 cursor-pointer"
+          className="w-5 h-5 rounded border-slate-800 bg-slate-950 text-orange-500 focus:ring-2 focus:ring-orange-500 focus:ring-offset-slate-900 focus:ring-offset-2 accent-orange-500 cursor-pointer"
           disabled={isLoading}
         />
         <label
           htmlFor="avoidTouristy"
-          className="text-sm text-slate-350 cursor-pointer"
+          className="text-sm text-slate-300 cursor-pointer"
         >
           Avoid overly touristy / crowded mainstream places
         </label>
@@ -299,7 +332,7 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full bg-emerald-500 hover:bg-emerald-450 text-slate-950 font-bold py-4 rounded-xl transition duration-150 transform active:scale-98 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed text-base"
+        className="w-full bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold py-4 rounded-xl transition duration-150 transform active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed text-base"
       >
         {isLoading ? "Generating Yatrika..." : "Generate Immersive Guide"}
       </button>

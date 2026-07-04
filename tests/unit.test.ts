@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TripInputSchema } from '../lib/schemas';
-import { fetchDestinationGrounding } from '../lib/destination-source';
+import {
+  fetchDestinationGrounding,
+  clearGroundingCache,
+} from '../lib/destination-source';
 
 describe('TripInputSchema Validation', () => {
   it('should validate complete, valid input', () => {
@@ -71,6 +74,7 @@ describe('TripInputSchema Validation', () => {
 describe('fetchDestinationGrounding (Wikipedia Grounding Layer)', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    clearGroundingCache();
   });
 
   it('should extract correct page summary on successful Wikipedia retrieval', async () => {
@@ -97,7 +101,7 @@ describe('fetchDestinationGrounding (Wikipedia Grounding Layer)', () => {
         json: async () => mockSummaryResponse,
       });
 
-    global.fetch = fetchMock as any;
+    global.fetch = fetchMock as unknown as typeof fetch;
 
     const result = await fetchDestinationGrounding('Jaipur');
     expect(result.source).toBe('wikipedia');
@@ -115,7 +119,7 @@ describe('fetchDestinationGrounding (Wikipedia Grounding Layer)', () => {
       json: async () => mockOpenSearchResponse,
     });
 
-    global.fetch = fetchMock as any;
+    global.fetch = fetchMock as unknown as typeof fetch;
 
     const result = await fetchDestinationGrounding('NonExistentCityQuery123');
     expect(result.source).toBe('fallback');
@@ -125,7 +129,7 @@ describe('fetchDestinationGrounding (Wikipedia Grounding Layer)', () => {
 
   it('should fall back gracefully on network or request failure', async () => {
     const fetchMock = vi.fn().mockRejectedValueOnce(new Error('Network error'));
-    global.fetch = fetchMock as any;
+    global.fetch = fetchMock as unknown as typeof fetch;
 
     const result = await fetchDestinationGrounding('London');
     expect(result.source).toBe('fallback');

@@ -102,8 +102,29 @@ const geminiResponseSchema = {
         required: ['dishName', 'description', 'culturalSignificance', 'whereToTry'],
       },
     },
+    localExperiences: {
+      type: 'ARRAY',
+      description:
+        'Seasonal/cultural experiences to look out for. Framed as typical patterns to verify locally, never a live event feed. May be empty.',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          title: { type: 'STRING' },
+          type: {
+            type: 'STRING',
+            description: 'One of: festival, market, performance, workshop, seasonal, ritual, other.',
+          },
+          description: { type: 'STRING' },
+          timing: { type: 'STRING' },
+          note: { type: 'STRING' },
+        },
+        required: ['title', 'type', 'description', 'timing', 'note'],
+      },
+    },
     storyModeNarrative: { type: 'STRING' },
   },
+  // localExperiences is intentionally omitted from `required`: it is an optional
+  // enrichment and its absence must never fail the core itinerary generation.
   required: [
     'destinationSummary',
     'tripStyleSummary',
@@ -140,7 +161,7 @@ export async function generateTripPlan(
         config: {
           systemInstruction,
           responseMimeType: 'application/json',
-          responseSchema: geminiResponseSchema as any,
+          responseSchema: geminiResponseSchema,
           temperature: 0.2, // Lower temperature to prevent creative hallucinating of factual data
         },
       });
@@ -156,9 +177,9 @@ export async function generateTripPlan(
       // Validate JSON response against our schema using Zod
       const validatedData = TripOutputSchema.parse(parsedData);
       return validatedData;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.warn(`Gemini generation attempt failed (${attempts} attempts left):`, error);
-      lastError = error;
+      lastError = error instanceof Error ? error : new Error(String(error));
       attempts--;
     }
   }

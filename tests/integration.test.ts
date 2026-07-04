@@ -88,6 +88,15 @@ describe('Orchestration Layer Integration', () => {
         whereToTry: 'Specialized restaurants near temples.',
       },
     ],
+    localExperiences: [
+      {
+        title: 'Gion Matsuri',
+        type: 'festival',
+        description: 'A major traditional summer festival with grand processions.',
+        timing: 'Typically throughout July — verify exact dates locally.',
+        note: 'Crowds are large; plan viewing spots ahead.',
+      },
+    ],
     storyModeNarrative: 'Imagine the scent of moss and cedar welcoming you as the garden mist sets...',
   };
 

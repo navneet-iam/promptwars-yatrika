@@ -25,6 +25,11 @@ describe("TripForm Accessibility & UI rendering", () => {
     expect(budgetSelect).toBeInTheDocument();
     expect(budgetSelect.tagName).toBe("SELECT");
 
+    // Optional travel-month select
+    const monthSelect = screen.getByLabelText(/When are you visiting\?/i);
+    expect(monthSelect).toBeInTheDocument();
+    expect(monthSelect.tagName).toBe("SELECT");
+
     // Submit button
     const submitBtn = screen.getByRole("button", {
       name: /Generate Immersive Guide/i,
@@ -100,10 +105,35 @@ describe("TripForm Accessibility & UI rendering", () => {
       interests: ["history"],
       budgetStyle: "moderate",
       travelPace: "balanced",
+      travelMonth: undefined,
       dietaryPreference: undefined,
       accessibilityNeeds: undefined,
       avoidTouristy: false,
     });
+  });
+
+  it("should include the selected travel month in the payload when chosen", () => {
+    const handleSubmitMock = vi.fn();
+    render(<TripForm onSubmit={handleSubmitMock} isLoading={false} />);
+
+    fireEvent.change(screen.getByLabelText(/Where are you traveling to\?/i), {
+      target: { value: "Jaipur" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: /History & Heritage/i }),
+    );
+    fireEvent.change(screen.getByLabelText(/When are you visiting\?/i), {
+      target: { value: "October" },
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Generate Immersive Guide/i }),
+    );
+
+    expect(handleSubmitMock).toHaveBeenCalledTimes(1);
+    expect(handleSubmitMock).toHaveBeenCalledWith(
+      expect.objectContaining({ destination: "Jaipur", travelMonth: "October" }),
+    );
   });
 
   it("should disable form submit button when isLoading is true", () => {

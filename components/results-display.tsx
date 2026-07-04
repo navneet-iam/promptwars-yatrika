@@ -13,14 +13,30 @@ interface ResultsDisplayProps {
   };
 }
 
+// Maps a (lenient) experience category to an icon, falling back gracefully for
+// any category the model returns outside the expected set.
+const EXPERIENCE_ICONS: Record<string, string> = {
+  festival: '🎉',
+  market: '🛍️',
+  performance: '🎭',
+  workshop: '🧵',
+  seasonal: '🍂',
+  ritual: '🛕',
+  other: '✨',
+};
+
 export default function ResultsDisplay({ data }: ResultsDisplayProps) {
   const { itinerary, grounding, timestamp, modelUsed } = data;
-  const [activeDay, setActiveDay] = useState<number>(1);
+  const [activeDay, setActiveDay] = useState<number>(
+    itinerary.days[0]?.dayNumber ?? 1,
+  );
   const [copySuccess, setCopySuccess] = useState(false);
+
+  const localExperiences = itinerary.localExperiences ?? [];
 
   const formatItineraryToText = (): string => {
     let text = `=========================================\n`;
-    text += `CULTURE TRAIL ITINERARY: ${grounding.title.toUpperCase()}\n`;
+    text += `YATRIKA CULTURAL ITINERARY: ${grounding.title.toUpperCase()}\n`;
     text += `=========================================\n\n`;
     text += `Overview:\n${itinerary.destinationSummary}\n\n`;
     text += `Trip Customization:\n${itinerary.tripStyleSummary}\n\n`;
@@ -63,6 +79,19 @@ export default function ResultsDisplay({ data }: ResultsDisplayProps) {
       text += `   - Who it suits: ${gem.whoItSuits}\n\n`;
     });
 
+    if (localExperiences.length > 0) {
+      text += `-----------------------------------------\n`;
+      text += `SEASONAL CULTURAL EXPERIENCES TO LOOK OUT FOR\n`;
+      text += `(AI-suggested cultural patterns — verify current schedules locally)\n`;
+      text += `-----------------------------------------\n`;
+      localExperiences.forEach((exp, idx) => {
+        text += `${idx + 1}. ${exp.title} [${exp.type}]\n`;
+        text += `   - What it is: ${exp.description}\n`;
+        text += `   - Typical timing: ${exp.timing}\n`;
+        text += `   - Note: ${exp.note}\n\n`;
+      });
+    }
+
     text += `-----------------------------------------\n`;
     text += `LOCAL CULTURAL ETIQUETTE & GUIDANCE\n`;
     text += `-----------------------------------------\n`;
@@ -82,7 +111,7 @@ export default function ResultsDisplay({ data }: ResultsDisplayProps) {
     });
 
     text += `=========================================\n`;
-    text += `Generated with CultureTrail (Gemini 2.5) on ${new Date(timestamp).toLocaleString()}\n`;
+    text += `Generated with Yatrika (${modelUsed}) on ${new Date(timestamp).toLocaleString()}\n`;
     text += `Grounding details: Wikipedia matched "${grounding.title}" (${grounding.source})\n`;
     text += `=========================================\n`;
     return text;
@@ -104,37 +133,66 @@ export default function ResultsDisplay({ data }: ResultsDisplayProps) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `CultureTrail_${grounding.title.replace(/\s+/g, '_')}_Itinerary.txt`;
+    link.download = `Yatrika_${grounding.title.replace(/\s+/g, '_')}_Itinerary.txt`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
 
+  // Roving-tabindex keyboard support for the day tablist (WAI-ARIA tabs pattern).
+  const handleTabKeyDown = (
+    e: React.KeyboardEvent<HTMLButtonElement>,
+    currentDayNumber: number,
+  ) => {
+    const dayNumbers = itinerary.days.map((d) => d.dayNumber);
+    const idx = dayNumbers.indexOf(currentDayNumber);
+    let nextIdx: number | null = null;
+
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      nextIdx = (idx + 1) % dayNumbers.length;
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      nextIdx = (idx - 1 + dayNumbers.length) % dayNumbers.length;
+    } else if (e.key === 'Home') {
+      nextIdx = 0;
+    } else if (e.key === 'End') {
+      nextIdx = dayNumbers.length - 1;
+    }
+
+    if (nextIdx !== null) {
+      e.preventDefault();
+      const nextDay = dayNumbers[nextIdx];
+      setActiveDay(nextDay);
+      document.getElementById(`day-tab-${nextDay}`)?.focus();
+    }
+  };
+
   return (
     <div className="space-y-8 max-w-4xl mx-auto" id="trail-results">
       {/* 1. Print & Export Action Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-md no-print">
-        <h2 className="text-sm font-semibold text-slate-350">
-          Your itinerary for <span className="text-slate-100 font-bold">{grounding.title}</span> is ready!
+        <h2 className="text-sm font-semibold text-slate-300">
+          Your itinerary for{' '}
+          <span className="text-slate-100 font-bold">{grounding.title}</span> is
+          ready!
         </h2>
         <div className="flex items-center space-x-2">
           <button
             onClick={handleCopy}
-            className="bg-slate-950 hover:bg-slate-850 text-slate-100 border border-slate-800 text-xs font-semibold px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 transition active:scale-98"
+            className="bg-slate-950 hover:bg-slate-800 text-slate-100 border border-slate-800 text-xs font-semibold px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition active:scale-[0.98]"
             aria-live="polite"
           >
             {copySuccess ? '✓ Copied to clipboard!' : '🗎 Copy Text'}
           </button>
           <button
             onClick={handleDownload}
-            className="bg-slate-950 hover:bg-slate-850 text-slate-100 border border-slate-800 text-xs font-semibold px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 transition active:scale-98"
+            className="bg-slate-950 hover:bg-slate-800 text-slate-100 border border-slate-800 text-xs font-semibold px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition active:scale-[0.98]"
           >
             🔀 Export TXT
           </button>
           <button
             onClick={() => window.print()}
-            className="bg-emerald-500 hover:bg-emerald-450 text-slate-950 text-xs font-bold px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 transition active:scale-98"
+            className="bg-orange-500 hover:bg-orange-400 text-slate-950 text-xs font-bold px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 transition active:scale-[0.98]"
           >
             🖨️ Print / Save PDF
           </button>
@@ -142,32 +200,62 @@ export default function ResultsDisplay({ data }: ResultsDisplayProps) {
       </div>
 
       {/* 2. Destination Overview */}
-      <section className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4" aria-labelledby="overview-heading">
-        <div className="border-l-4 border-emerald-500 pl-4 space-y-2">
-          <h2 id="overview-heading" className="text-2xl font-bold text-slate-100 tracking-tight">
+      <section
+        className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4"
+        aria-labelledby="overview-heading"
+      >
+        <div className="border-l-4 border-orange-500 pl-4 space-y-2">
+          <h2
+            id="overview-heading"
+            className="text-2xl font-bold text-slate-100 tracking-tight"
+          >
             Discovering {grounding.title}
           </h2>
-          <p className="text-slate-350 text-sm italic">{itinerary.tripStyleSummary}</p>
+          <p className="text-slate-300 text-sm italic">
+            {itinerary.tripStyleSummary}
+          </p>
         </div>
-        <p className="text-slate-300 text-base leading-relaxed leading-7">
+        <p className="text-slate-300 text-base leading-7">
           {itinerary.destinationSummary}
         </p>
       </section>
 
       {/* 3. Story Mode Narrative (The Wow Layer) */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-950/20 to-slate-900 border border-emerald-900/30 p-6 rounded-2xl shadow-lg" aria-labelledby="story-heading">
-        <div className="absolute top-0 right-0 p-3 opacity-10 text-6xl font-serif select-none pointer-events-none text-emerald-500">“</div>
-        <h2 id="story-heading" className="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-3">Immersive Narrative Experience</h2>
+      <section
+        className="relative overflow-hidden bg-gradient-to-br from-orange-950/30 to-slate-900 border border-orange-900/40 p-6 rounded-2xl shadow-lg"
+        aria-labelledby="story-heading"
+      >
+        <div className="absolute top-0 right-0 p-3 opacity-10 text-6xl font-serif select-none pointer-events-none text-orange-500">
+          &ldquo;
+        </div>
+        <h2
+          id="story-heading"
+          className="text-xs font-bold uppercase tracking-wider text-orange-400 mb-3"
+        >
+          Immersive Narrative Experience
+        </h2>
         <blockquote className="text-slate-200 font-serif text-lg leading-relaxed italic relative z-10">
-          “{itinerary.storyModeNarrative}”
+          &ldquo;{itinerary.storyModeNarrative}&rdquo;
         </blockquote>
       </section>
 
       {/* 4. Day-by-Day Itinerary Planner */}
-      <section className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden" aria-labelledby="itinerary-heading">
-        <div className="p-6 bg-slate-900 border-b border-slate-850 flex items-center justify-between flex-wrap gap-4">
-          <h2 id="itinerary-heading" className="text-lg font-bold text-slate-100">Day-by-Day Planner</h2>
-          <div className="flex flex-wrap gap-1" role="tablist" aria-label="Itinerary Day selection">
+      <section
+        className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden"
+        aria-labelledby="itinerary-heading"
+      >
+        <div className="p-6 bg-slate-900 border-b border-slate-800 flex items-center justify-between flex-wrap gap-4">
+          <h2
+            id="itinerary-heading"
+            className="text-lg font-bold text-slate-100"
+          >
+            Day-by-Day Planner
+          </h2>
+          <div
+            className="flex flex-wrap gap-1"
+            role="tablist"
+            aria-label="Itinerary Day selection"
+          >
             {itinerary.days.map((day) => (
               <button
                 key={day.dayNumber}
@@ -175,11 +263,13 @@ export default function ResultsDisplay({ data }: ResultsDisplayProps) {
                 aria-selected={activeDay === day.dayNumber}
                 aria-controls={`day-panel-${day.dayNumber}`}
                 id={`day-tab-${day.dayNumber}`}
+                tabIndex={activeDay === day.dayNumber ? 0 : -1}
                 onClick={() => setActiveDay(day.dayNumber)}
-                className={`px-4 py-2 text-xs font-bold rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 transition ${
+                onKeyDown={(e) => handleTabKeyDown(e, day.dayNumber)}
+                className={`px-4 py-2 text-xs font-bold rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition ${
                   activeDay === day.dayNumber
-                    ? 'bg-emerald-500 text-slate-950'
-                    : 'bg-slate-950 text-slate-400 hover:text-slate-250 border border-slate-850'
+                    ? 'bg-orange-500 text-slate-950'
+                    : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800'
                 }`}
               >
                 Day {day.dayNumber}
@@ -199,82 +289,124 @@ export default function ResultsDisplay({ data }: ResultsDisplayProps) {
               hidden={!isCurrent}
               className={`p-6 space-y-6 ${isCurrent ? 'block' : 'hidden'}`}
             >
-              <div className="border-b border-slate-850 pb-4">
+              <div className="border-b border-slate-800 pb-4">
                 <h3 className="text-base font-bold text-slate-200">
-                  Theme: <span className="text-emerald-400 font-semibold">{day.theme}</span>
+                  Theme:{' '}
+                  <span className="text-orange-400 font-semibold">
+                    {day.theme}
+                  </span>
                 </h3>
               </div>
 
               <div className="grid grid-cols-1 gap-6">
                 {/* Morning */}
-                <div className="bg-slate-950/60 p-5 rounded-xl border border-slate-850 hover:border-slate-800 transition space-y-3">
+                <div className="bg-slate-950/60 p-5 rounded-xl border border-slate-800 hover:border-slate-700 transition space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-900 pb-2">
                     <span className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center">
                       ☀️ Morning • {day.morning.duration}
                     </span>
-                    <h4 className="text-base font-bold text-slate-200">{day.morning.title}</h4>
+                    <h4 className="text-base font-bold text-slate-200">
+                      {day.morning.title}
+                    </h4>
                   </div>
-                  <p className="text-slate-300 text-sm leading-relaxed">{day.morning.description}</p>
+                  <p className="text-slate-300 text-sm leading-relaxed">
+                    {day.morning.description}
+                  </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs bg-slate-950 p-3 rounded-lg border border-slate-900">
                     <div>
-                      <span className="block font-bold text-slate-450 mb-0.5 uppercase tracking-wide">Cultural Significance</span>
-                      <p className="text-slate-350">{day.morning.culturalContext}</p>
+                      <span className="block font-bold text-slate-400 mb-0.5 uppercase tracking-wide">
+                        Cultural Significance
+                      </span>
+                      <p className="text-slate-300">
+                        {day.morning.culturalContext}
+                      </p>
                     </div>
                     <div>
-                      <span className="block font-bold text-slate-450 mb-0.5 uppercase tracking-wide">Why Recommended</span>
-                      <p className="text-slate-350">{day.morning.whyRecommended}</p>
+                      <span className="block font-bold text-slate-400 mb-0.5 uppercase tracking-wide">
+                        Why Recommended
+                      </span>
+                      <p className="text-slate-300">
+                        {day.morning.whyRecommended}
+                      </p>
                     </div>
                   </div>
-                  <div className="bg-emerald-500/5 text-emerald-400 border border-emerald-950 p-2.5 rounded-lg text-xs font-medium">
-                    ⚠️ <strong>Respect Tip:</strong> {day.morning.practicalTip}
+                  <div className="bg-orange-500/5 text-orange-300 border border-orange-500/20 p-2.5 rounded-lg text-xs font-medium">
+                    <span aria-hidden="true">💡</span>{' '}
+                    <strong>Respect Tip:</strong> {day.morning.practicalTip}
                   </div>
                 </div>
 
                 {/* Afternoon */}
-                <div className="bg-slate-950/60 p-5 rounded-xl border border-slate-850 hover:border-slate-800 transition space-y-3">
+                <div className="bg-slate-950/60 p-5 rounded-xl border border-slate-800 hover:border-slate-700 transition space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-900 pb-2">
                     <span className="text-xs font-bold uppercase tracking-wider text-sky-400 flex items-center">
                       🌤️ Afternoon • {day.afternoon.duration}
                     </span>
-                    <h4 className="text-base font-bold text-slate-200">{day.afternoon.title}</h4>
+                    <h4 className="text-base font-bold text-slate-200">
+                      {day.afternoon.title}
+                    </h4>
                   </div>
-                  <p className="text-slate-300 text-sm leading-relaxed">{day.afternoon.description}</p>
+                  <p className="text-slate-300 text-sm leading-relaxed">
+                    {day.afternoon.description}
+                  </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs bg-slate-950 p-3 rounded-lg border border-slate-900">
                     <div>
-                      <span className="block font-bold text-slate-450 mb-0.5 uppercase tracking-wide">Cultural Significance</span>
-                      <p className="text-slate-350">{day.afternoon.culturalContext}</p>
+                      <span className="block font-bold text-slate-400 mb-0.5 uppercase tracking-wide">
+                        Cultural Significance
+                      </span>
+                      <p className="text-slate-300">
+                        {day.afternoon.culturalContext}
+                      </p>
                     </div>
                     <div>
-                      <span className="block font-bold text-slate-450 mb-0.5 uppercase tracking-wide">Why Recommended</span>
-                      <p className="text-slate-350">{day.afternoon.whyRecommended}</p>
+                      <span className="block font-bold text-slate-400 mb-0.5 uppercase tracking-wide">
+                        Why Recommended
+                      </span>
+                      <p className="text-slate-300">
+                        {day.afternoon.whyRecommended}
+                      </p>
                     </div>
                   </div>
-                  <div className="bg-emerald-500/5 text-emerald-400 border border-emerald-950 p-2.5 rounded-lg text-xs font-medium">
-                    ⚠️ <strong>Respect Tip:</strong> {day.afternoon.practicalTip}
+                  <div className="bg-orange-500/5 text-orange-300 border border-orange-500/20 p-2.5 rounded-lg text-xs font-medium">
+                    <span aria-hidden="true">💡</span>{' '}
+                    <strong>Respect Tip:</strong> {day.afternoon.practicalTip}
                   </div>
                 </div>
 
                 {/* Evening */}
-                <div className="bg-slate-950/60 p-5 rounded-xl border border-slate-850 hover:border-slate-800 transition space-y-3">
+                <div className="bg-slate-950/60 p-5 rounded-xl border border-slate-800 hover:border-slate-700 transition space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-900 pb-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-purple-400 flex items-center">
+                    <span className="text-xs font-bold uppercase tracking-wider text-violet-400 flex items-center">
                       🌙 Evening • {day.evening.duration}
                     </span>
-                    <h4 className="text-base font-bold text-slate-200">{day.evening.title}</h4>
+                    <h4 className="text-base font-bold text-slate-200">
+                      {day.evening.title}
+                    </h4>
                   </div>
-                  <p className="text-slate-300 text-sm leading-relaxed">{day.evening.description}</p>
+                  <p className="text-slate-300 text-sm leading-relaxed">
+                    {day.evening.description}
+                  </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs bg-slate-950 p-3 rounded-lg border border-slate-900">
                     <div>
-                      <span className="block font-bold text-slate-450 mb-0.5 uppercase tracking-wide">Cultural Significance</span>
-                      <p className="text-slate-350">{day.evening.culturalContext}</p>
+                      <span className="block font-bold text-slate-400 mb-0.5 uppercase tracking-wide">
+                        Cultural Significance
+                      </span>
+                      <p className="text-slate-300">
+                        {day.evening.culturalContext}
+                      </p>
                     </div>
                     <div>
-                      <span className="block font-bold text-slate-450 mb-0.5 uppercase tracking-wide">Why Recommended</span>
-                      <p className="text-slate-350">{day.evening.whyRecommended}</p>
+                      <span className="block font-bold text-slate-400 mb-0.5 uppercase tracking-wide">
+                        Why Recommended
+                      </span>
+                      <p className="text-slate-300">
+                        {day.evening.whyRecommended}
+                      </p>
                     </div>
                   </div>
-                  <div className="bg-emerald-500/5 text-emerald-400 border border-emerald-950 p-2.5 rounded-lg text-xs font-medium">
-                    ⚠️ <strong>Respect Tip:</strong> {day.evening.practicalTip}
+                  <div className="bg-orange-500/5 text-orange-300 border border-orange-500/20 p-2.5 rounded-lg text-xs font-medium">
+                    <span aria-hidden="true">💡</span>{' '}
+                    <strong>Respect Tip:</strong> {day.evening.practicalTip}
                   </div>
                 </div>
               </div>
@@ -285,37 +417,103 @@ export default function ResultsDisplay({ data }: ResultsDisplayProps) {
 
       {/* 5. Hidden Gems & Authentic Experiences */}
       <section className="space-y-4" aria-labelledby="gems-heading">
-        <h2 id="gems-heading" className="text-lg font-bold text-slate-100 flex items-center space-x-2">
+        <h2
+          id="gems-heading"
+          className="text-lg font-bold text-slate-100 flex items-center space-x-2"
+        >
           <span>✨ Authentic local recommendations (Hidden Gems)</span>
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 list-none p-0 m-0">
           {itinerary.hiddenGems.map((gem, idx) => (
-            <div
+            <li
               key={idx}
-              className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-md flex flex-col justify-between hover:border-slate-750 transition space-y-4"
+              className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-md flex flex-col justify-between hover:border-slate-700 transition space-y-4"
             >
               <div className="space-y-2">
                 <span className="bg-slate-950 border border-slate-800 text-slate-400 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider inline-block">
                   Lesser-Known Cultural Experience
                 </span>
-                <h3 className="text-base font-bold text-slate-200">{gem.name}</h3>
-                <p className="text-slate-300 text-sm leading-relaxed">{gem.whatItIs}</p>
-                <div className="bg-slate-950 p-3 rounded-lg text-xs border border-slate-900 space-y-1 text-slate-350">
-                  <span className="block text-[10px] uppercase font-bold text-slate-450">Why it is special:</span>
+                <h3 className="text-base font-bold text-slate-200">
+                  {gem.name}
+                </h3>
+                <p className="text-slate-300 text-sm leading-relaxed">
+                  {gem.whatItIs}
+                </p>
+                <div className="bg-slate-950 p-3 rounded-lg text-xs border border-slate-900 space-y-1 text-slate-300">
+                  <span className="block text-[10px] uppercase font-bold text-slate-400">
+                    Why it is special:
+                  </span>
                   <p>{gem.whySpecial}</p>
                 </div>
               </div>
-              <div className="flex justify-between items-center text-xs text-slate-400 border-t border-slate-850 pt-3 mt-4">
-                <span>🕒 <strong>Best time:</strong> {gem.whenToGo}</span>
-                <span>👤 <strong>Suits:</strong> {gem.whoItSuits}</span>
+              <div className="flex justify-between items-center text-xs text-slate-400 border-t border-slate-800 pt-3 mt-4">
+                <span>
+                  🕒 <strong>Best time:</strong> {gem.whenToGo}
+                </span>
+                <span>
+                  👤 <strong>Suits:</strong> {gem.whoItSuits}
+                </span>
               </div>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       </section>
 
-      {/* 6. Cultural Etiquette & Dress Guide */}
-      <section className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4" aria-labelledby="etiquette-heading">
+      {/* 6. Seasonal & Cultural Experiences (conditional, clearly AI-suggested) */}
+      {localExperiences.length > 0 && (
+        <section className="space-y-4" aria-labelledby="experiences-heading">
+          <div className="space-y-1">
+            <h2
+              id="experiences-heading"
+              className="text-lg font-bold text-slate-100 flex items-center space-x-2"
+            >
+              <span>🗓️ Seasonal cultural experiences to look out for</span>
+            </h2>
+            <p className="text-xs text-slate-400">
+              AI-suggested cultural patterns and traditions — not a live event
+              feed. Always verify current dates and schedules locally.
+            </p>
+          </div>
+          <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 list-none p-0 m-0">
+            {localExperiences.map((exp, idx) => (
+              <li
+                key={idx}
+                className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-md space-y-3 hover:border-slate-700 transition"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-base font-bold text-slate-200 flex items-center gap-2">
+                    <span aria-hidden="true">
+                      {EXPERIENCE_ICONS[exp.type.toLowerCase()] ??
+                        EXPERIENCE_ICONS.other}
+                    </span>
+                    {exp.title}
+                  </h3>
+                  <span className="flex-shrink-0 bg-orange-500/10 border border-orange-500/30 text-orange-300 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider">
+                    {exp.type}
+                  </span>
+                </div>
+                <p className="text-slate-300 text-sm leading-relaxed">
+                  {exp.description}
+                </p>
+                <div className="text-xs text-slate-400 border-t border-slate-800 pt-3 space-y-1">
+                  <p>
+                    🕒 <strong>Typical timing:</strong> {exp.timing}
+                  </p>
+                  <p className="italic">
+                    <span aria-hidden="true">ℹ️</span> {exp.note}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* 7. Cultural Etiquette & Dress Guide */}
+      <section
+        className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4"
+        aria-labelledby="etiquette-heading"
+      >
         <h2 id="etiquette-heading" className="text-lg font-bold text-slate-100">
           Local Heritage & Cultural Etiquette
         </h2>
@@ -326,22 +524,24 @@ export default function ResultsDisplay({ data }: ResultsDisplayProps) {
             return (
               <div
                 key={idx}
-                className="bg-slate-950/40 border border-slate-850 p-4 rounded-xl flex items-start space-x-3 text-sm leading-relaxed"
+                className="bg-slate-950/40 border border-slate-800 p-4 rounded-xl flex items-start space-x-3 text-sm leading-relaxed"
               >
                 <span
                   className={`flex-shrink-0 text-xs font-bold uppercase px-2 py-0.5 rounded text-center min-w-16 ${
                     isDo
-                      ? 'bg-emerald-500/10 text-emerald-400'
+                      ? 'bg-green-500/10 text-green-400'
                       : isDont
-                      ? 'bg-rose-500/10 text-rose-400'
-                      : 'bg-blue-500/10 text-blue-400'
+                        ? 'bg-rose-500/10 text-rose-400'
+                        : 'bg-sky-500/10 text-sky-400'
                   }`}
                 >
                   {rule.type}
                 </span>
                 <div className="space-y-1">
                   <h3 className="font-bold text-slate-200">{rule.guideline}</h3>
-                  <p className="text-slate-350 text-xs leading-relaxed">{rule.explanation}</p>
+                  <p className="text-slate-300 text-xs leading-relaxed">
+                    {rule.explanation}
+                  </p>
                 </div>
               </div>
             );
@@ -349,8 +549,11 @@ export default function ResultsDisplay({ data }: ResultsDisplayProps) {
         </div>
       </section>
 
-      {/* 7. Local Food & Culture */}
-      <section className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4" aria-labelledby="food-heading">
+      {/* 8. Local Food & Culture */}
+      <section
+        className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4"
+        aria-labelledby="food-heading"
+      >
         <h2 id="food-heading" className="text-lg font-bold text-slate-100">
           Traditional Culinary Delicacies to Try
         </h2>
@@ -358,12 +561,16 @@ export default function ResultsDisplay({ data }: ResultsDisplayProps) {
           {itinerary.foodHighlights.map((food, idx) => (
             <div
               key={idx}
-              className="bg-slate-950 p-4 rounded-xl border border-slate-850 flex flex-col justify-between space-y-3"
+              className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between space-y-3"
             >
               <div className="space-y-1.5">
-                <h3 className="font-bold text-emerald-400 text-sm">{food.dishName}</h3>
-                <p className="text-slate-300 text-xs leading-relaxed">{food.description}</p>
-                <div className="pt-2 text-[11px] text-slate-350 italic border-t border-slate-900 mt-2">
+                <h3 className="font-bold text-orange-400 text-sm">
+                  {food.dishName}
+                </h3>
+                <p className="text-slate-300 text-xs leading-relaxed">
+                  {food.description}
+                </p>
+                <div className="pt-2 text-[11px] text-slate-300 italic border-t border-slate-900 mt-2">
                   🍲 {food.culturalSignificance}
                 </div>
               </div>
@@ -375,9 +582,14 @@ export default function ResultsDisplay({ data }: ResultsDisplayProps) {
         </div>
       </section>
 
-      {/* 8. Technical Evaluator Metadata (Audit Log proof) */}
-      <section className="bg-slate-950 border border-slate-850 p-4 rounded-xl text-xs space-y-2 text-slate-450 max-w-full overflow-x-auto select-all" aria-label="System Metadata Information">
-        <h3 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Evaluation Audit Logs (Dynamically Generated)</h3>
+      {/* 9. Technical Evaluator Metadata (Audit Log proof) */}
+      <section
+        className="bg-slate-950 border border-slate-800 p-4 rounded-xl text-xs space-y-2 text-slate-400 max-w-full overflow-x-auto"
+        aria-label="System Metadata Information"
+      >
+        <h3 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+          Evaluation Audit Logs (Dynamically Generated)
+        </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pt-1">
           <div>
             <span className="block font-bold">Query Timestamp</span>
@@ -389,8 +601,16 @@ export default function ResultsDisplay({ data }: ResultsDisplayProps) {
           </div>
           <div>
             <span className="block font-bold">Wikipedia Sourced</span>
-            <span className={grounding.source === 'wikipedia' ? 'text-emerald-400' : 'text-amber-400'}>
-              {grounding.source === 'wikipedia' ? '✓ Successful' : '⚠ Failed (Graceful Fallback)'}
+            <span
+              className={
+                grounding.source === 'wikipedia'
+                  ? 'text-green-400'
+                  : 'text-amber-400'
+              }
+            >
+              {grounding.source === 'wikipedia'
+                ? '✓ Successful'
+                : '⚠ Failed (Graceful Fallback)'}
             </span>
           </div>
           <div>
@@ -405,7 +625,7 @@ export default function ResultsDisplay({ data }: ResultsDisplayProps) {
               href={grounding.url}
               target="_blank"
               rel="noreferrer"
-              className="text-emerald-500 hover:underline"
+              className="text-orange-400 hover:underline"
             >
               {grounding.url}
             </a>
