@@ -115,8 +115,7 @@ export default function Home() {
           <p className="text-slate-400 text-sm sm:text-base leading-relaxed">
             Craft travel experiences grounded in authentic history, local
             customs, and neighborhood treasures. We combine Wikipedia
-            verification with Gemini personalization to eliminate
-            hallucinations.
+            verification with Gemini personalization.
           </p>
         </section>
 
