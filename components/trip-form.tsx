@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { TripInput, VALID_INTERESTS } from '@/lib/schemas';
+import React, { useState } from "react";
+import { TripInput, VALID_INTERESTS } from "@/lib/schemas";
 
 interface TripFormProps {
   onSubmit: (input: TripInput) => void;
@@ -9,30 +9,36 @@ interface TripFormProps {
 }
 
 const INTEREST_LABELS: Record<(typeof VALID_INTERESTS)[number], string> = {
-  history: '🏛️ History & Heritage',
-  food: '🍲 Culinary & Street Food',
-  architecture: '🕌 Architecture & Monuments',
-  'local-markets': '🛍️ Local Bazaars & Markets',
-  'festivals-arts': '🎨 Festivals & Performing Arts',
-  spirituality: '🙏 Spirituality & Temples',
-  nature: '🌳 Nature & Ecotourism',
-  photography: '📷 Scenic Spot Photography',
+  history: "🏛️ History & Heritage",
+  food: "🍲 Culinary & Street Food",
+  architecture: "🕌 Architecture & Monuments",
+  "local-markets": "🛍️ Local Bazaars & Markets",
+  "festivals-arts": "🎨 Festivals & Performing Arts",
+  spirituality: "🙏 Spirituality & Temples",
+  nature: "🌳 Nature & Ecotourism",
+  photography: "📷 Scenic Spot Photography",
 };
 
 export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
-  const [destination, setDestination] = useState('');
+  const [destination, setDestination] = useState("");
   const [days, setDays] = useState(3);
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
-  const [budgetStyle, setBudgetStyle] = useState<'budget' | 'moderate' | 'premium'>('moderate');
-  const [travelPace, setTravelPace] = useState<'relaxed' | 'balanced' | 'packed'>('balanced');
-  const [dietaryPreference, setDietaryPreference] = useState('');
-  const [accessibilityNeeds, setAccessibilityNeeds] = useState('');
+  const [budgetStyle, setBudgetStyle] = useState<
+    "budget" | "moderate" | "premium"
+  >("moderate");
+  const [travelPace, setTravelPace] = useState<
+    "relaxed" | "balanced" | "packed"
+  >("balanced");
+  const [dietaryPreference, setDietaryPreference] = useState("");
+  const [accessibilityNeeds, setAccessibilityNeeds] = useState("");
   const [avoidTouristy, setAvoidTouristy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleInterestToggle = (interest: string) => {
     setSelectedInterests((prev) =>
-      prev.includes(interest) ? prev.filter((i) => i !== interest) : [...prev, interest]
+      prev.includes(interest)
+        ? prev.filter((i) => i !== interest)
+        : [...prev, interest],
     );
   };
 
@@ -42,12 +48,12 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
 
     // Basic Validation
     if (!destination.trim()) {
-      setError('Please specify a destination.');
+      setError("Please specify a destination.");
       return;
     }
 
     if (selectedInterests.length === 0) {
-      setError('Please select at least one cultural interest.');
+      setError("Please select at least one cultural interest.");
       return;
     }
 
@@ -73,8 +79,12 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
       noValidate
     >
       <div className="space-y-2">
-        <label htmlFor="destination" className="block text-sm font-semibold text-slate-200">
-          Where are you traveling to? <span className="text-emerald-400">*</span>
+        <label
+          htmlFor="destination"
+          className="block text-sm font-semibold text-slate-200"
+        >
+          Where are you traveling to?{" "}
+          <span className="text-emerald-400">*</span>
         </label>
         <input
           type="text"
@@ -91,8 +101,13 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <label htmlFor="days" className="block text-sm font-semibold text-slate-200">
-            Trip Duration: <span className="font-bold text-emerald-400">{days}</span> day(s) <span className="text-emerald-400">*</span>
+          <label
+            htmlFor="days"
+            className="block text-sm font-semibold text-slate-200"
+          >
+            Trip Duration:{" "}
+            <span className="font-bold text-emerald-400">{days}</span> day(s){" "}
+            <span className="text-emerald-400">*</span>
           </label>
           <input
             type="range"
@@ -112,7 +127,10 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="budgetStyle" className="block text-sm font-semibold text-slate-200">
+          <label
+            htmlFor="budgetStyle"
+            className="block text-sm font-semibold text-slate-200"
+          >
             Budget Style <span className="text-emerald-400">*</span>
           </label>
           <select
@@ -122,16 +140,26 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
             className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
             disabled={isLoading}
           >
-            <option value="budget">Budget (Local-style, authentic cost-effective options)</option>
-            <option value="moderate">Moderate (Balanced experiences & comfort)</option>
-            <option value="premium">Premium (Immersive heritage stays & private curations)</option>
+            <option value="budget">
+              Budget (Local-style, authentic cost-effective options)
+            </option>
+            <option value="moderate">
+              Moderate (Balanced experiences & comfort)
+            </option>
+            <option value="premium">
+              Premium (Immersive heritage stays & private curations)
+            </option>
           </select>
         </div>
       </div>
 
       <div className="space-y-2">
-        <span id="interests-legend" className="block text-sm font-semibold text-slate-200">
-          What cultural interests fit your style? <span className="text-emerald-400">*</span>
+        <span
+          id="interests-legend"
+          className="block text-sm font-semibold text-slate-200"
+        >
+          What cultural interests fit your style?{" "}
+          <span className="text-emerald-400">*</span>
         </span>
         <div
           role="group"
@@ -149,12 +177,12 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
                 disabled={isLoading}
                 className={`flex items-center text-left px-4 py-3 rounded-xl border text-sm transition focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
                   isSelected
-                    ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 font-medium'
-                    : 'bg-slate-950 border-slate-850 text-slate-350 hover:border-slate-800'
+                    ? "bg-emerald-500/10 border-emerald-500 text-emerald-400 font-medium"
+                    : "bg-slate-950 border-slate-850 text-slate-350 hover:border-slate-800"
                 }`}
               >
                 <span className="mr-2" aria-hidden="true">
-                  {isSelected ? '✓' : '○'}
+                  {isSelected ? "✓" : "○"}
                 </span>
                 {INTEREST_LABELS[interest]}
               </button>
@@ -164,7 +192,10 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
       </div>
 
       <div className="space-y-2">
-        <span id="pace-legend" className="block text-sm font-semibold text-slate-200">
+        <span
+          id="pace-legend"
+          className="block text-sm font-semibold text-slate-200"
+        >
           Travel Pace <span className="text-emerald-400">*</span>
         </span>
         <div
@@ -172,7 +203,7 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
           aria-labelledby="pace-legend"
           className="grid grid-cols-3 gap-2"
         >
-          {(['relaxed', 'balanced', 'packed'] as const).map((pace) => {
+          {(["relaxed", "balanced", "packed"] as const).map((pace) => {
             const isSelected = travelPace === pace;
             return (
               <button
@@ -184,8 +215,8 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
                 disabled={isLoading}
                 className={`py-3 rounded-xl border text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-500 capitalise ${
                   isSelected
-                    ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400'
-                    : 'bg-slate-950 border-slate-850 text-slate-350 hover:border-slate-800'
+                    ? "bg-emerald-500/10 border-emerald-500 text-emerald-400"
+                    : "bg-slate-950 border-slate-850 text-slate-350 hover:border-slate-800"
                 }`}
               >
                 {pace.charAt(0).toUpperCase() + pace.slice(1)}
@@ -197,11 +228,16 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
 
       <div className="border-t border-slate-850 my-6"></div>
 
-      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Optional Personalization</h3>
+      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+        Optional Personalization
+      </h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <label htmlFor="dietaryPreference" className="block text-sm font-semibold text-slate-200">
+          <label
+            htmlFor="dietaryPreference"
+            className="block text-sm font-semibold text-slate-200"
+          >
             Dietary Preferences / Restrictions
           </label>
           <input
@@ -216,7 +252,10 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="accessibilityNeeds" className="block text-sm font-semibold text-slate-200">
+          <label
+            htmlFor="accessibilityNeeds"
+            className="block text-sm font-semibold text-slate-200"
+          >
             Accessibility / Mobility Needs
           </label>
           <input
@@ -240,7 +279,10 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
           className="w-5 h-5 rounded border-slate-800 bg-slate-950 text-emerald-500 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-slate-900 focus:ring-offset-2 accent-emerald-500 cursor-pointer"
           disabled={isLoading}
         />
-        <label htmlFor="avoidTouristy" className="text-sm text-slate-350 cursor-pointer">
+        <label
+          htmlFor="avoidTouristy"
+          className="text-sm text-slate-350 cursor-pointer"
+        >
           Avoid overly touristy / crowded mainstream places
         </label>
       </div>
@@ -259,7 +301,7 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
         disabled={isLoading}
         className="w-full bg-emerald-500 hover:bg-emerald-450 text-slate-950 font-bold py-4 rounded-xl transition duration-150 transform active:scale-98 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed text-base"
       >
-        {isLoading ? 'Generating Culture Trail...' : 'Generate Immersive Guide'}
+        {isLoading ? "Generating Yatrika..." : "Generate Immersive Guide"}
       </button>
     </form>
   );
